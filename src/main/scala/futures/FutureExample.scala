@@ -26,13 +26,24 @@ object FutureExample extends App {
        buyCofferResult <- buyCoffee()
       ) yield Seq(buyBakeryResult, buyCofferResult)
 
-  val finalDestination = Future {
+
+  val action2: Future[Seq[String]] = buyBakery()
+    .flatMap(b =>
+      buyCoffee().map(c => Seq(b,c))
+    )
+
+  def finalDestination(action: Future[Seq[String]]): Future[Unit] = {
+    val p = Promise[Unit]()
     action.onComplete {
       case Success(seq) =>
+        p.success()
         seq.foreach(println)
       case Failure(ex) =>
+        p.failure(ex)
         ex.printStackTrace()
     }
+    p.future
   }
-  Await.result(finalDestination, Duration.Inf)
+
+  Await.result(finalDestination(action), Duration.Inf)
 }
